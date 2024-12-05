@@ -6,9 +6,12 @@ BACKUP_FILE="/etc/V2bX/sing_origin.json.bak"
 # 备份配置文件
 cp "$CONFIG_FILE" "$BACKUP_FILE"
 
-# 添加 FakeIP 和规则
-jq '."dns" |= . + {"fakeip": {"enabled": true, "inet4_range": "198.18.0.0/16", "inet6_range": "fc00::/18"}} |
-    ."route"."rules" |= [{"ip_cidr": ["198.18.0.0/16", "fc00::/18"], "outbound": "direct"}] + .' \
+# 修改配置文件
+jq '."dns" |= (. + {"fakeip": {"enabled": true, "inet4_range": "198.18.0.0/16", "inet6_range": "fc00::/18"}}) |
+    ."route"."rules" |= (. + [{"ip_cidr": ["198.18.0.0/16", "fc00::/18"], "outbound": "direct"}]) |
+    ."route"."rules" |= (map(if .outbound == "direct" and .network == ["udp", "tcp"] 
+                             then {"ip_cidr": ["198.18.0.0/16", "fc00::/18"], "outbound": "direct"} + . 
+                             else . end))' \
     "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
 
 # 检查配置是否正确
