@@ -19,10 +19,13 @@ jq '(
         "inet4_range": "198.18.0.0/16",
         "inet6_range": "fc00::/18"
     }
-    | .route.rules |= map(
-        if .outbound == "direct" and .network == ["udp", "tcp"] then 
-        [{"ip_cidr": ["198.18.0.0/16", "fc00::/18"], "outbound": "direct"}] + [.]
-        else . end
+    | .route.rules |= (
+        map(
+            if .outbound == "direct" and .network == ["udp", "tcp"] then
+                {"ip_cidr": ["198.18.0.0/16", "fc00::/18"], "outbound": "direct"}
+            else .
+            end
+        ) + [{"outbound": "direct", "network": ["udp", "tcp"]}]
     )
 )' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp"
 
