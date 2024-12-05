@@ -14,18 +14,23 @@ fi
 
 # 修改配置文件
 jq '(
+    # 添加 fakeip 配置
     .dns.fakeip = {
         "enabled": true,
         "inet4_range": "198.18.0.0/16",
         "inet6_range": "fc00::/18"
     }
-    | .route.rules |= (
+    |
+    # 修改 route.rules，正确插入 ip_cidr 配置
+    .route.rules |= (
         map(
             if .outbound == "direct" and .network == ["udp", "tcp"] then
-                {"ip_cidr": ["198.18.0.0/16", "fc00::/18"], "outbound": "direct"}
-            else .
+                [{"ip_cidr": ["198.18.0.0/16", "fc00::/18"], "outbound": "direct"}, .]
+            else
+                .
             end
-        ) + [{"outbound": "direct", "network": ["udp", "tcp"]}]
+        )
+        | flatten
     )
 )' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp"
 
