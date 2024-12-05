@@ -13,7 +13,8 @@ else
 fi
 
 # 修改配置文件
-jq '(
+jq '
+(
     # 添加 fakeip 配置
     .dns.fakeip = {
         "enabled": true,
@@ -21,13 +22,20 @@ jq '(
         "inet6_range": "fc00::/18"
     }
     |
-    # 修改 route.rules，直接插入平铺的对象而非数组
-    .route.rules |= map(
-        if .outbound == "direct" and .network == ["udp", "tcp"] then
-            {"ip_cidr": ["198.18.0.0/16", "fc00::/18"], "outbound": "direct"} + . 
-        else
-            .
-        end
+    # 在指定位置插入新的规则
+    .route.rules |= (
+        . as $rules | reduce range(0; length) as $i (
+            []; . + 
+            if $rules[$i] | .outbound == "block" and .domain_regex then 
+                [$rules[$i], 
+                 {
+                     "ip_cidr": ["198.18.0.0/16", "fc00::/18"],
+                     "outbound": "direct"
+                 }]
+            else 
+                [$rules[$i]] 
+            end
+        )
     )
 )' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp"
 
