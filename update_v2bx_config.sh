@@ -13,9 +13,16 @@ else
 fi
 
 # 修改配置文件
-jq '.dns.fakeip = {"enabled": true}' "$CONFIG_FILE" | \
-jq '(.route.rules |= . + [{"ip_cidr": ["198.18.0.0/16", "fc00::/18"], "outbound": "direct"}]) | .route.rules |= map(if .outbound == "direct" and .network == ["udp", "tcp"] then . else . end)' > "${CONFIG_FILE}.tmp"
+jq '(
+    .dns.fakeip = {"enabled": true}
+    | .route.rules |= map(
+        if .outbound == "direct" and .network == ["udp", "tcp"] then 
+        [{"ip_cidr": ["198.18.0.0/16", "fc00::/18"], "outbound": "direct"}] + [.]
+        else . end
+    )
+)' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp"
 
+# 检查修改是否成功
 if [ $? -ne 0 ]; then
     echo "配置文件修改失败，请手动检查。"
     exit 1
