@@ -21,7 +21,7 @@ jq '(
         "inet6_range": "fc00::/18"
     }
     |
-    # 修改 route.rules，正确插入 ip_cidr 配置
+    # 修改 route.rules，确保在指定规则前添加 ip_cidr
     .route.rules |= (
         map(
             if .outbound == "direct" and .network == ["udp", "tcp"] then
@@ -30,7 +30,6 @@ jq '(
                 .
             end
         )
-        | flatten
     )
 )' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp"
 
