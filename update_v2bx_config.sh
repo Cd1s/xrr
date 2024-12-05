@@ -21,15 +21,13 @@ jq '(
         "inet6_range": "fc00::/18"
     }
     |
-    # 修改 route.rules，确保在指定规则前添加 ip_cidr
-    .route.rules |= (
-        map(
-            if .outbound == "direct" and .network == ["udp", "tcp"] then
-                [{"ip_cidr": ["198.18.0.0/16", "fc00::/18"], "outbound": "direct"}, .]
-            else
-                .
-            end
-        )
+    # 修改 route.rules，直接插入平铺的对象而非数组
+    .route.rules |= map(
+        if .outbound == "direct" and .network == ["udp", "tcp"] then
+            {"ip_cidr": ["198.18.0.0/16", "fc00::/18"], "outbound": "direct"} + . 
+        else
+            .
+        end
     )
 )' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp"
 
